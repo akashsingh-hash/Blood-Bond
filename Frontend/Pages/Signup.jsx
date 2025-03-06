@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { motion } from "framer-motion";
@@ -13,6 +13,7 @@ import {
   Hospital,
   Shield,
 } from "lucide-react";
+
 
 const schema = yup.object().shape({
   email: yup.string().email("Invalid email").required("Email is required"),
@@ -27,25 +28,17 @@ const schema = yup.object().shape({
   confirmPassword: yup
     .string()
     .oneOf([yup.ref("password"), null], "Passwords must match"),
-  bloodGroup: yup.string().when("userType", {
-    is: "user",
-    then: yup.string().required("Please select your blood group"),
-  }),
+  bloodGroup: yup.string().required("Blood group is required"),
   location: yup.string().required("Location is required"),
-  hospitalName: yup.string().when("userType", {
-    is: "hospital",
-    then: yup.string().required("Hospital name is required"),
-  }),
-  registrationNumber: yup.string().when("userType", {
-    is: "hospital",
-    then: yup.string().required("Registration Number is required"),
-  }),
+  hospitalName: yup.string().nullable(),
+  registrationNumber: yup.string().nullable(),
   organDonation: yup.boolean(),
   terms: yup.bool().oneOf([true], "You must accept the terms & conditions"),
 });
 
 const Signup = () => {
   const [userType, setUserType] = useState("user"); // "user" or "hospital"
+  const navigate = useNavigate();
 
   const {
     register,
@@ -56,8 +49,35 @@ const Signup = () => {
     defaultValues: { userType: "user" },
   });
 
-  const onSubmit = (data) => {
-    console.log("Signup Data:", data);
+  const onSubmit = async (data) => {
+    try {
+      console.log("Submitting data:", data); // Log the data being sent
+
+      const endpoint = userType === "user" ? "register/user" : "register/hospital";
+      const response = await fetch(`http://localhost:5000/api/auth/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Network response was not ok';
+        try {
+          const errorData = await response.json();
+          console.error("Server response:", errorData); // Log the server response
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          console.error("Error parsing JSON:", e);
+        }
+        throw new Error(errorMessage);
+      }
+
+      navigate('/login');
+    } catch (err) {
+      console.error("Error:", err.message);
+    }
   };
 
   return (
@@ -110,7 +130,7 @@ const Signup = () => {
               </label>
               <input
                 type="text"
-                {...register("hospitalName")}
+                {...register("hospitalName", { required: userType === "hospital" })}
                 className="w-full p-2 mt-1 rounded-lg bg-[#1b3a4b] text-white focus:outline-none"
                 placeholder="Enter Hospital Name"
               />
@@ -131,7 +151,7 @@ const Signup = () => {
               </label>
               <input
                 type="text"
-                {...register("registrationNumber")}
+                {...register("registrationNumber", { required: userType === "hospital" })}
                 className="w-full p-2 mt-1 rounded-lg bg-[#1b3a4b] text-white focus:outline-none"
                 placeholder="Enter Registration Number"
               />
@@ -210,6 +230,23 @@ const Signup = () => {
               <p className="text-red-500 text-sm">
                 {errors.confirmPassword.message}
               </p>
+            )}
+          </div>
+
+          {/* Blood Group */}
+          <div>
+            <label className="flex items-center text-lg">
+              <Heart className="mr-2 text-[#fb4673]" />
+              Blood Group
+            </label>
+            <input
+              type="text"
+              {...register("bloodGroup")}
+              className="w-full p-2 mt-1 rounded-lg bg-[#1b3a4b] text-white focus:outline-none"
+              placeholder="A+, B-, O+, etc."
+            />
+            {errors.bloodGroup && (
+              <p className="text-red-500 text-sm">{errors.bloodGroup.message}</p>
             )}
           </div>
 
