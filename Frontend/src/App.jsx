@@ -11,10 +11,14 @@ import About from "../Pages/About";
 import Event from "../Pages/Events";
 import Contact from "../Pages/Contact";
 import HospitalPage from "../Pages/HospitalPage";
+import EmergencyRequest from "../Pages/EmergencyRequest";
+import { Toaster } from 'react-hot-toast';
+import EmergencySuccess from "../Pages/EmergencySuccess";
 
 const App = () => {
   return (
     <Router>
+      <Toaster /> {/* Add this */}
       <div className="flex flex-col min-h-screen">
         {/* Navigation Bar */}
         <Navbar />
@@ -31,6 +35,9 @@ const App = () => {
             <Route path="/events" element={<Event/>}/>
             <Route path="/contact" element={<Contact/>}/>
             <Route path="/hospital/:id" element={<HospitalPage />} />
+            <Route path="/emergency" element={<EmergencyRequest />} />
+            <Route path="/emergency/success" element={<EmergencySuccess/>} />
+
           </Routes>
         </main>
 

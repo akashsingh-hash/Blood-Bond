@@ -6,7 +6,10 @@ const hospitalSchema = new mongoose.Schema({
   password: { type: String, required: true },
   hospitalName: { type: String, required: true },
   registrationNumber: { type: String, required: true },
-  location: { type: String, required: true },
+  location: {
+    city: { type: String, required: true },
+    state: { type: String, required: true }
+  },
   inventory: {
     aPositive: { type: Number, default: 0 },
     aNegative: { type: Number, default: 0 },

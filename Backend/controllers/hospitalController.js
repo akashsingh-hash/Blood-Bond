@@ -1,4 +1,6 @@
 const Hospital = require('../models/Hospital.js');
+const BloodRequest = require('../models/BloodRequest.js');
+const { sendBloodRequest } = require('../utils/emailService.js');
 
 const getHospitalProfile = async (req, res) => {
   try {
@@ -57,9 +59,108 @@ const getHospitalById = async (req, res) => {
   }
 };
 
+const addReview = async (req, res) => {
+  try {
+    const { rating, comment } = req.body;
+    const hospital = await Hospital.findById(req.params.id);
+    
+    if (!hospital) {
+      return res.status(404).json({ message: 'Hospital not found' });
+    }
+
+    // Use the name from the JWT token
+    const review = {
+      userName: req.user.name,  // This comes from the JWT token now
+      rating,
+      comment,
+      date: new Date()
+    };
+
+    hospital.reviews.unshift(review);  // Add new review at the beginning
+    await hospital.save();
+
+    res.status(201).json({ message: 'Review added successfully', review });
+  } catch (err) {
+    console.error('Error adding review:', err);
+    res.status(500).json({ message: 'Error adding review' });
+  }
+};
+
+const requestBlood = async (req, res) => {
+  try {
+    const { hospitalId } = req.params;
+    const { patientName, bloodGroup, unitsRequired } = req.body;
+
+    // Input validation
+    if (!patientName || !bloodGroup || !unitsRequired) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    const hospital = await Hospital.findById(hospitalId);
+    if (!hospital) {
+      return res.status(404).json({ message: 'Hospital not found' });
+    }
+
+    // Check if hospital has enough blood units
+    const bloodGroupMapping = {
+      'A+': 'aPositive',
+      'A-': 'aNegative',
+      'B+': 'bPositive',
+      'B-': 'bNegative',
+      'AB+': 'abPositive',
+      'AB-': 'abNegative',
+      'O+': 'oPositive',
+      'O-': 'oNegative'
+    };
+
+    const inventoryKey = bloodGroupMapping[bloodGroup];
+    if (!inventoryKey || hospital.inventory[inventoryKey] < unitsRequired) {
+      return res.status(400).json({ 
+        message: 'Requested blood units not available' 
+      });
+    }
+
+    // Create blood request
+    const bloodRequest = new BloodRequest({
+      patientName,
+      bloodGroup,
+      unitsRequired,
+      hospital: hospitalId
+    });
+    await bloodRequest.save();
+
+    // Send email notification
+    try {
+      await sendBloodRequest(hospital.email, {
+        patientName,
+        bloodGroup,
+        unitsRequired,
+        replyTo: process.env.EMAIL_USER
+      });
+      console.log("Here i am ");
+    } catch (emailError) {
+      console.error('Email sending failed:', emailError);
+      // Continue with the request even if email fails
+    }
+
+    res.status(201).json({ 
+      message: 'Blood request sent successfully',
+      requestId: bloodRequest._id
+    });
+  } catch (error) {
+    console.error('Blood request error:', error);
+    res.status(500).json({ 
+      message: 'Error processing blood request',
+      error: error.message 
+    });
+  }
+};
+
 module.exports = { 
   getHospitalProfile, 
   updateInventory, 
   getAllHospitals,
-  getHospitalById  // Add this export
+  getHospitalById,
+  addReview,
+  requestBlood
 };

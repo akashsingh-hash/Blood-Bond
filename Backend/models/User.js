@@ -6,7 +6,10 @@ const userSchema = new mongoose.Schema({
   phone: { type: String, required: true },
   password: { type: String, required: true },
   bloodGroup: { type: String, required: true },
-  location: { type: String, required: true },
+  location: {
+    city: { type: String, required: true },
+    state: { type: String, required: true }
+  },
   organDonation: { type: Boolean, default: false },
 });
 

@@ -45,7 +45,8 @@ const Login = () => {
       }
 
       localStorage.setItem('token', result.token);
-      localStorage.setItem('userType', userType); // Store user type
+      localStorage.setItem('userType', userType);
+      localStorage.setItem('userName', result.userName); // Store userName
 
       // Redirect based on user type
       if (userType === "user") {

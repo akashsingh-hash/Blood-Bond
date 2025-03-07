@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { motion } from "framer-motion";
+import toast from 'react-hot-toast';
 import {
   Mail,
   Lock,
@@ -36,7 +37,10 @@ const schema = yup.object().shape({
     .test("passwords-match", "Passwords must match", function(value) {
       return this.parent.password === value;
     }),
-  location: yup.string().required("Location is required"),
+  location: yup.object().shape({
+    city: yup.string().required("City is required"),
+    state: yup.string().required("State is required")
+  }),
   bloodGroup: yup.string().when("$userType", {
     is: "user",
     then: () => yup.string().required("Blood group is required"),
@@ -64,7 +68,8 @@ const Signup = () => {
     handleSubmit,
     formState: { errors },
     reset,
-    getValues
+    getValues,
+    setValue
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: { userType: "user" },
@@ -76,6 +81,26 @@ const Signup = () => {
   React.useEffect(() => {
     reset();
   }, [userType, reset]);
+
+  // Modify useEffect to only fetch location for user type
+  useEffect(() => {
+    const fetchLocation = async () => {
+      try {
+        if (userType === 'user') {
+          const response = await fetch('http://ip-api.com/json');
+          const data = await response.json();
+          if (data.status === 'success') {
+            setValue('location.city', data.city);
+            setValue('location.state', data.regionName);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching location:', error);
+      }
+    };
+
+    fetchLocation();
+  }, [setValue, userType]);
 
   const onSubmit = async (data) => {
     setIsLoading(true);
@@ -120,11 +145,11 @@ const Signup = () => {
         throw new Error(responseData.message || "Signup failed");
       }
 
-      alert("Signup successful!");
+      toast.success("Signup successful! Please login to continue.");
       navigate("/login");
     } catch (err) {
       console.error("Error:", err.message);
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -327,20 +352,43 @@ const Signup = () => {
             </div>
           )}
 
-          {/* Location */}
-          <div className="col-span-1 sm:col-span-2">
+          {/* City */}
+          <div className="col-span-1">
             <label className="flex items-center text-lg">
               <MapPin className="mr-2 text-[#fb4673]" />
-              Location
+              City
             </label>
             <input
               type="text"
-              {...register("location")}
-              className="w-full p-2 mt-1 rounded-lg bg-[#1b3a4b] text-white focus:outline-none"
-              placeholder="City, State"
+              {...register("location.city")}
+              className={`w-full p-2 mt-1 rounded-lg bg-[#1b3a4b] text-white focus:outline-none ${
+                userType === 'user' ? 'cursor-not-allowed' : ''
+              }`}
+              placeholder={userType === 'user' ? "Detecting location..." : "Enter City"}
+              readOnly={userType === 'user'}
             />
-            {errors.location && (
-              <p className="text-red-500 text-sm">{errors.location.message}</p>
+            {errors.location?.city && (
+              <p className="text-red-500 text-sm">{errors.location.city.message}</p>
+            )}
+          </div>
+
+          {/* State */}
+          <div className="col-span-1">
+            <label className="flex items-center text-lg">
+              <MapPin className="mr-2 text-[#fb4673]" />
+              State
+            </label>
+            <input
+              type="text"
+              {...register("location.state")}
+              className={`w-full p-2 mt-1 rounded-lg bg-[#1b3a4b] text-white focus:outline-none ${
+                userType === 'user' ? 'cursor-not-allowed' : ''
+              }`}
+              placeholder={userType === 'user' ? "Detecting location..." : "Enter State"}
+              readOnly={userType === 'user'}
+            />
+            {errors.location?.state && (
+              <p className="text-red-500 text-sm">{errors.location.state.message}</p>
             )}
           </div>
 

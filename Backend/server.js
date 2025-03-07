@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const authRoutes = require('./routes/authRoutes.js');
 const userRoutes = require('./routes/userRoutes.js');
 const hospitalRoutes = require('./routes/hospitalRoutes.js');
+const emergencyRoutes = require('./routes/emergencyRoutes');
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/hospitals', hospitalRoutes);
+app.use('/api/emergency', emergencyRoutes);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI, )
