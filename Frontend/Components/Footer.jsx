@@ -11,7 +11,7 @@ const Footer = () => {
         <div>
           <Link to="/" className="flex items-center text-2xl font-bold">
             <HeartPulse className="mr-2 text-[#fb4673]" />
-            <span className="text-[#28bca9]">LifeSaver</span>
+            <span className="text-[#28bca9]">BloodBond</span>
           </Link>
           <p className="mt-4 text-gray-300">
             Saving lives through blood & organ donation. Join us and make a difference today!
@@ -36,7 +36,7 @@ const Footer = () => {
         <div>
           <h3 className="text-lg font-semibold text-[#28bca9]">Contact Us</h3>
           <div className="mt-4 space-y-3">
-            <p className="flex items-center"><Mail className="mr-2 text-[#fb4673]" /> support@lifesaver.com</p>
+            <p className="flex items-center"><Mail className="mr-2 text-[#fb4673]" /> support@BloodBond.com</p>
             <p className="flex items-center"><Phone className="mr-2 text-[#fb4673]" /> +1 234 567 890</p>
             <p className="flex items-center"><MapPin className="mr-2 text-[#fb4673]" /> 123 Donation Street, NY</p>
           </div>
@@ -77,7 +77,7 @@ const Footer = () => {
         </div>
 
         {/* Copyright */}
-        <p className="mt-6 text-gray-400">&copy; {new Date().getFullYear()} LifeSaver. All Rights Reserved.</p>
+        <p className="mt-6 text-gray-400">&copy; {new Date().getFullYear()} BloodBond. All Rights Reserved.</p>
       </div>
 
     </footer>

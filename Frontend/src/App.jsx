@@ -7,6 +7,10 @@ import Login from "../Pages/Login";
 import Signup from "../Pages/Signup";
 import UserDashboard from "../Pages/UserDashboard";
 import HospitalDashboard from "../Pages/HospitalDashboard";
+import About from "../Pages/About";
+import Event from "../Pages/Events";
+import Contact from "../Pages/Contact";
+import HospitalPage from "../Pages/HospitalPage";
 
 const App = () => {
   return (
@@ -23,6 +27,10 @@ const App = () => {
             <Route path="/signup" element={<Signup />} />
             <Route path="/user-dashboard" element={<UserDashboard />} />
             <Route path="/hospital-dashboard" element={<HospitalDashboard />} />
+            <Route path="/about" element={<About/>}/>
+            <Route path="/events" element={<Event/>}/>
+            <Route path="/contact" element={<Contact/>}/>
+            <Route path="/hospital/:id" element={<HospitalPage />} />
           </Routes>
         </main>
 

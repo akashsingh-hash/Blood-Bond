@@ -3,7 +3,7 @@ import React from "react";
 const Navbar = () => {
   return (
     <nav className="bg-glass bg-opacity-30 backdrop-blur-md shadow-md fixed top-0 left-0 w-full p-4 flex justify-between items-center md:px-10 px-4">
-      <h1 className="text-secondary text-2xl font-bold">LifeSaver</h1>
+      <h1 className="text-secondary text-2xl font-bold">BloodBond</h1>
       <ul className="hidden md:flex space-x-6">
         <li className="text-textDark hover:text-secondary cursor-pointer">Home</li>
         <li className="text-textDark hover:text-secondary cursor-pointer">About</li>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -15,6 +15,8 @@ const schema = yup.object().shape({
 });
 
 const Login = () => {
+  const [userType, setUserType] = useState("user");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const {
     register,
@@ -25,8 +27,10 @@ const Login = () => {
   });
 
   const onSubmit = async (data) => {
+    setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login/user', {
+      const endpoint = userType === "user" ? "login/user" : "login/hospital";
+      const response = await fetch(`http://localhost:5000/api/auth/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -34,26 +38,32 @@ const Login = () => {
         body: JSON.stringify(data),
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Network response was not ok');
+        throw new Error(result.message || 'Login failed');
       }
 
-      const result = await response.json();
       localStorage.setItem('token', result.token);
-      if (data.rememberMe) {
-        localStorage.setItem('rememberMe', 'true');
+      localStorage.setItem('userType', userType); // Store user type
+
+      // Redirect based on user type
+      if (userType === "user") {
+        navigate('/user-dashboard');
       } else {
-        localStorage.removeItem('rememberMe');
+        navigate('/hospital-dashboard');
       }
-      navigate('/user-dashboard');
+      
     } catch (err) {
       console.error('Error:', err.message);
+      alert(err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <section className="flex justify-center items-center min-h-screen bg-gradient-to-r from-[#fb4673] via-[#28bca9] to-[#99cccc] text-white p-6">
+    <section className="flex justify-center items-center min-h-screen bg-white text-white p-6">
       <motion.div
         className="bg-[#223634] p-8 rounded-lg shadow-lg w-full max-w-md"
         initial={{ opacity: 0, y: -50 }}
@@ -61,6 +71,32 @@ const Login = () => {
         transition={{ duration: 0.6 }}
       >
         <h2 className="text-3xl font-bold text-center mb-6">Login</h2>
+
+        {/* User Type Selection */}
+        <div className="flex justify-center mb-6 space-x-4">
+          <button
+            type="button"
+            onClick={() => setUserType("user")}
+            className={`px-4 py-2 rounded-lg ${
+              userType === "user"
+                ? "bg-[#fb4673] text-white"
+                : "bg-gray-200 text-gray-700"
+            }`}
+          >
+            User
+          </button>
+          <button
+            type="button"
+            onClick={() => setUserType("hospital")}
+            className={`px-4 py-2 rounded-lg ${
+              userType === "hospital"
+                ? "bg-[#fb4673] text-white"
+                : "bg-gray-200 text-gray-700"
+            }`}
+          >
+            Hospital
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Email */}
@@ -118,16 +154,27 @@ const Login = () => {
           {/* Login Button */}
           <button
             type="submit"
-            className="w-full bg-[#fb4673] hover:bg-[#28bca9] py-3 mt-4 rounded-lg text-lg font-semibold transition"
+            disabled={isLoading}
+            className="w-full bg-[#fb4673] hover:bg-[#28bca9] py-3 mt-4 rounded-lg text-lg font-semibold transition disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
           >
-            Login
+            {isLoading ? (
+              <>
+                <div className="w-5 h-5 border-t-2 border-b-2 border-white rounded-full animate-spin mr-2"></div>
+                Processing...
+              </>
+            ) : (
+              'Login'
+            )}
           </button>
         </form>
 
         {/* Signup Link */}
         <p className="text-center mt-4">
           Don't have an account?{" "}
-          <Link to="/signup" className="text-[#28bca9] underline">
+          <Link 
+            to="/signup" 
+            className={`text-[#28bca9] underline ${isLoading ? 'pointer-events-none opacity-70' : ''}`}
+          >
             Sign Up
           </Link>
         </p>

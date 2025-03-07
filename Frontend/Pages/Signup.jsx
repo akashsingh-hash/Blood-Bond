@@ -12,10 +12,15 @@ import {
   Heart,
   Hospital,
   Shield,
+  UserPlus,
 } from "lucide-react";
 
-
 const schema = yup.object().shape({
+  name: yup.string().when("$userType", {
+    is: "user",
+    then: () => yup.string().required("Name is required"),
+    otherwise: () => yup.string().nullable()
+  }),
   email: yup.string().email("Invalid email").required("Email is required"),
   phone: yup
     .string()
@@ -27,61 +32,106 @@ const schema = yup.object().shape({
     .required("Password is required"),
   confirmPassword: yup
     .string()
-    .oneOf([yup.ref("password"), null], "Passwords must match"),
-  bloodGroup: yup.string().required("Blood group is required"),
+    .required("Confirm password is required")
+    .test("passwords-match", "Passwords must match", function(value) {
+      return this.parent.password === value;
+    }),
   location: yup.string().required("Location is required"),
-  hospitalName: yup.string().nullable(),
-  registrationNumber: yup.string().nullable(),
-  organDonation: yup.boolean(),
-  terms: yup.bool().oneOf([true], "You must accept the terms & conditions"),
+  bloodGroup: yup.string().when("$userType", {
+    is: "user",
+    then: () => yup.string().required("Blood group is required"),
+    otherwise: () => yup.string().nullable()
+  }),
+  hospitalName: yup.string().when("$userType", {
+    is: "hospital",
+    then: () => yup.string().required("Hospital name is required"),
+    otherwise: () => yup.string().nullable()
+  }),
+  registrationNumber: yup.string().when("$userType", {
+    is: "hospital",
+    then: () => yup.string().required("Registration number is required"),
+    otherwise: () => yup.string().nullable()
+  })
 });
 
 const Signup = () => {
-  const [userType, setUserType] = useState("user"); // "user" or "hospital"
+  const [userType, setUserType] = useState("user");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    reset,
+    getValues
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: { userType: "user" },
+    context: { userType }, // Add context for conditional validation
+    mode: "onChange" // This will validate on change
   });
 
+  // Reset form when userType changes
+  React.useEffect(() => {
+    reset();
+  }, [userType, reset]);
+
   const onSubmit = async (data) => {
+    setIsLoading(true);
     try {
-      console.log("Submitting data:", data); // Log the data being sent
+      // Verify passwords match before submitting
+      if (data.password !== data.confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+
+      // Add userType to the data being sent
+      const submitData = {
+        ...data,
+        userType: userType,
+        // Send raw password - backend will handle hashing
+        password: data.password
+      };
+
+      // Remove unnecessary fields
+      delete submitData.confirmPassword;
+      if (userType === 'user') {
+        delete submitData.hospitalName;
+        delete submitData.registrationNumber;
+      } else {
+        delete submitData.bloodGroup;
+      }
+
+      console.log("Submitting data:", submitData);
 
       const endpoint = userType === "user" ? "register/user" : "register/hospital";
       const response = await fetch(`http://localhost:5000/api/auth/${endpoint}`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(submitData),
       });
 
+      const responseData = await response.json();
+      console.log("Response data:", responseData);
+
       if (!response.ok) {
-        let errorMessage = 'Network response was not ok';
-        try {
-          const errorData = await response.json();
-          console.error("Server response:", errorData); // Log the server response
-          errorMessage = errorData.message || errorMessage;
-        } catch (e) {
-          console.error("Error parsing JSON:", e);
-        }
-        throw new Error(errorMessage);
+        throw new Error(responseData.message || "Signup failed");
       }
 
-      navigate('/login');
+      alert("Signup successful!");
+      navigate("/login");
     } catch (err) {
       console.error("Error:", err.message);
+      alert(err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <section className="flex justify-center items-center min-h-screen bg-gradient-to-r from-[#fb4673] via-[#28bca9] to-[#99cccc] text-white p-4 sm:p-6">
+    <section className="flex justify-center items-center min-h-screen bg-white text-white p-4 sm:p-6">
       <motion.div
         className="bg-[#223634] p-6 sm:p-8 rounded-lg shadow-lg w-full max-w-4xl mt-20"
         initial={{ opacity: 0, y: -50 }}
@@ -121,6 +171,25 @@ const Signup = () => {
           onSubmit={handleSubmit(onSubmit)}
           className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6"
         >
+          {/* Full Name (Only for User) */}
+          {userType === "user" && (
+            <div className="col-span-1 sm:col-span-2">
+              <label className="flex items-center text-lg">
+                <UserPlus className="mr-2 text-[#fb4673]" />
+                Full Name
+              </label>
+              <input
+                type="text"
+                {...register("name")}
+                className="w-full p-2 mt-1 rounded-lg bg-[#1b3a4b] text-white focus:outline-none"
+                placeholder="Enter your full name"
+              />
+              {errors.name && (
+                <p className="text-red-500 text-sm">{errors.name.message}</p>
+              )}
+            </div>
+          )}
+
           {/* Hospital Name (Only for Hospital) */}
           {userType === "hospital" && (
             <div className="col-span-1 sm:col-span-2">
@@ -130,7 +199,9 @@ const Signup = () => {
               </label>
               <input
                 type="text"
-                {...register("hospitalName", { required: userType === "hospital" })}
+                {...register("hospitalName", {
+                  required: userType === "hospital",
+                })}
                 className="w-full p-2 mt-1 rounded-lg bg-[#1b3a4b] text-white focus:outline-none"
                 placeholder="Enter Hospital Name"
               />
@@ -151,7 +222,9 @@ const Signup = () => {
               </label>
               <input
                 type="text"
-                {...register("registrationNumber", { required: userType === "hospital" })}
+                {...register("registrationNumber", {
+                  required: userType === "hospital",
+                })}
                 className="w-full p-2 mt-1 rounded-lg bg-[#1b3a4b] text-white focus:outline-none"
                 placeholder="Enter Registration Number"
               />
@@ -233,22 +306,26 @@ const Signup = () => {
             )}
           </div>
 
-          {/* Blood Group */}
-          <div>
-            <label className="flex items-center text-lg">
-              <Heart className="mr-2 text-[#fb4673]" />
-              Blood Group
-            </label>
-            <input
-              type="text"
-              {...register("bloodGroup")}
-              className="w-full p-2 mt-1 rounded-lg bg-[#1b3a4b] text-white focus:outline-none"
-              placeholder="A+, B-, O+, etc."
-            />
-            {errors.bloodGroup && (
-              <p className="text-red-500 text-sm">{errors.bloodGroup.message}</p>
-            )}
-          </div>
+          {/* Blood Group - Only for User */}
+          {userType === "user" && (
+            <div>
+              <label className="flex items-center text-lg">
+                <Heart className="mr-2 text-[#fb4673]" />
+                Blood Group
+              </label>
+              <input
+                type="text"
+                {...register("bloodGroup", { required: userType === "user" })}
+                className="w-full p-2 mt-1 rounded-lg bg-[#1b3a4b] text-white focus:outline-none"
+                placeholder="A+, B-, O+, etc."
+              />
+              {errors.bloodGroup && (
+                <p className="text-red-500 text-sm">
+                  {errors.bloodGroup.message}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Location */}
           <div className="col-span-1 sm:col-span-2">
@@ -269,9 +346,17 @@ const Signup = () => {
 
           <button
             type="submit"
-            className="col-span-1 sm:col-span-2 bg-[#fb4673] hover:bg-[#28bca9] py-3 rounded-lg text-lg font-semibold transition"
+            disabled={isLoading}
+            className="col-span-1 sm:col-span-2 bg-[#fb4673] hover:bg-[#28bca9] py-3 rounded-lg text-lg font-semibold transition disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
           >
-            Sign Up
+            {isLoading ? (
+              <>
+                <div className="w-5 h-5 border-t-2 border-b-2 border-white rounded-full animate-spin mr-2"></div>
+                Signing up...
+              </>
+            ) : (
+              "Sign Up"
+            )}
           </button>
         </form>
         <p className="text-center mt-4">

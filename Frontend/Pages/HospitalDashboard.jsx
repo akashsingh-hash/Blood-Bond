@@ -2,60 +2,111 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 const HospitalDashboard = () => {
-  const [inventory, setInventory] = useState({ blood: 0, organs: 0 });
+  const [inventory, setInventory] = useState({
+    aPositive: 0,
+    aNegative: 0,
+    bPositive: 0,
+    bNegative: 0,
+    abPositive: 0,
+    abNegative: 0,
+    oPositive: 0,
+    oNegative: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [updateStatus, setUpdateStatus] = useState({ message: '', error: false });
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await axios.get('/api/hospitals/profile', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
-        setInventory(response.data.inventory || { blood: 0, organs: 0 });
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
     fetchProfile();
   }, []);
 
-  const handleUpdateInventory = async () => {
+  const fetchProfile = async () => {
     try {
-      await axios.put('/api/hospitals/inventory', inventory, {
+      const response = await axios.get('http://localhost:5000/api/hospitals/profile', {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
-      alert('Inventory updated successfully');
+      setInventory(response.data.inventory);
+      setLoading(false);
     } catch (err) {
       console.error(err);
+      setLoading(false);
     }
   };
 
+  const handleUpdateInventory = async () => {
+    try {
+      setUpdateStatus({ message: 'Updating...', error: false });
+      
+      const response = await axios.put(
+        'http://localhost:5000/api/hospitals/inventory',
+        inventory,
+        {
+          headers: { 
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.inventory) {
+        setInventory(response.data.inventory);
+      }
+      
+      setUpdateStatus({ message: 'Inventory updated successfully!', error: false });
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setUpdateStatus({ message: '', error: false });
+      }, 3000);
+
+    } catch (err) {
+      console.error('Update error:', err);
+      setUpdateStatus({ 
+        message: err.response?.data?.message || 'Failed to update inventory', 
+        error: true 
+      });
+    }
+  };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-r from-[#fb4673] via-[#28bca9] to-[#99cccc] text-white p-6">
-      <h1 className="text-3xl font-bold text-center mb-6">Hospital Dashboard</h1>
-      <div className="max-w-md mx-auto bg-[#223634] p-6 rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold mb-4">Update Inventory</h2>
-        <div className="mb-4">
-          <label className="block text-lg">Blood Inventory</label>
-          <input
-            type="number"
-            value={inventory.blood}
-            onChange={(e) => setInventory({ ...inventory, blood: e.target.value })}
-            className="w-full p-2 mt-1 rounded-lg bg-[#1b3a4b] text-white focus:outline-none"
-          />
+    <div className="min-h-screen bg-gray-100 p-6">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold text-gray-800 mb-8">Blood Inventory Management</h1>
+        
+        {updateStatus.message && (
+          <div className={`mb-4 p-4 rounded-lg ${
+            updateStatus.error ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+          }`}>
+            {updateStatus.message}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {Object.entries(inventory).map(([type, quantity]) => (
+            <div key={type} className="bg-white p-6 rounded-lg shadow-md">
+              <label className="block text-lg font-semibold text-gray-700 mb-2">
+                {type.replace(/([A-Z])/g, ' $1').trim()} Blood
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={quantity}
+                onChange={(e) => setInventory({ 
+                  ...inventory, 
+                  [type]: parseInt(e.target.value) || 0 
+                })}
+                className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          ))}
         </div>
-        <div className="mb-4">
-          <label className="block text-lg">Organ Inventory</label>
-          <input
-            type="number"
-            value={inventory.organs}
-            onChange={(e) => setInventory({ ...inventory, organs: e.target.value })}
-            className="w-full p-2 mt-1 rounded-lg bg-[#1b3a4b] text-white focus:outline-none"
-          />
-        </div>
+
         <button
           onClick={handleUpdateInventory}
-          className="w-full bg-[#fb4673] hover:bg-[#28bca9] py-3 rounded-lg text-lg font-semibold transition"
+          className="mt-8 w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors"
         >
           Update Inventory
         </button>

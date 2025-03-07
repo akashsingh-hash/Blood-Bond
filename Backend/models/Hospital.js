@@ -8,9 +8,21 @@ const hospitalSchema = new mongoose.Schema({
   registrationNumber: { type: String, required: true },
   location: { type: String, required: true },
   inventory: {
-    blood: { type: Number, default: 0 },
-    organs: { type: Number, default: 0 },
+    aPositive: { type: Number, default: 0 },
+    aNegative: { type: Number, default: 0 },
+    bPositive: { type: Number, default: 0 },
+    bNegative: { type: Number, default: 0 },
+    abPositive: { type: Number, default: 0 },
+    abNegative: { type: Number, default: 0 },
+    oPositive: { type: Number, default: 0 },
+    oNegative: { type: Number, default: 0 }
   },
+  reviews: [{
+    userName: String,
+    rating: Number,
+    comment: String,
+    date: { type: Date, default: Date.now }
+  }]
 });
 
 const Hospital = mongoose.model('Hospital', hospitalSchema);
